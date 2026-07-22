@@ -43,10 +43,12 @@ st.divider()
 # 2. Блок скачивания бланков
 st.subheader("1. Скачать партию бланков на чистку")
 
-if st.button("📥 Запросить партию бланков (до 15 шт.)", type="primary", use_container_width=True):
-    with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
-        try:
-            res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant, "curator": curator}, timeout=30)
+batch_size = st.slider("📊 Выберите количество бланков в партии:", min_value=1, max_value=15, value=15)
+
+if st.button(f"📥 Запросить партию ({batch_size} бланков)", type="primary", use_container_width=True):
+with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
+    try:
+        res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant, "curator": curator, "limit": batch_size}, timeout=30)
             files = res.json() if res.status_code == 200 else []
         except Exception as e:
             st.error(f"Ошибка соединения с сервером: {e}")
