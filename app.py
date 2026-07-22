@@ -58,16 +58,16 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
         st.warning("⚠️ Свободных работ для чистки по этому варианту нет! Пожалуйста, выберите другой вариант.")
     else:
         st.success(f"Найдено свободных бланков: {len(files)} шт. Формируем ZIP-архив...")
-        
+
         # Скачиваем файлы и формируем ZIP в оперативной памяти
         zip_buffer = io.BytesIO()
         progress_bar = st.progress(0)
-        
+
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for idx, item in enumerate(files):
                 file_id = item["fileId"]
                 filename = item["fileName"]
-                
+
                 try:
                     file_res = requests.get(WEB_APP_URL, params={"action": "get_file", "fileId": file_id}, timeout=30)
                     if file_res.status_code == 200:
@@ -75,12 +75,12 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
                         zf.writestr(filename, file_bytes)
                 except Exception as err:
                     st.error(f"Ошибка скачивания файла {filename}: {err}")
-                
+
                 progress_bar.progress((idx + 1) / len(files))
 
         safe_variant = variant.replace(" ", "_")
         safe_curator = curator.replace(" ", "_")
-        
+
         st.download_button(
             label=f"💾 Скачать ZIP-архив с {len(files)} бланками",
             data=zip_buffer.getvalue(),
@@ -104,25 +104,25 @@ if uploaded_files:
     if st.button("🚀 Отправить очищенные файлы в таблицу", type="primary", use_container_width=True):
         success_count = 0
         total_files = len(uploaded_files)
-        
+
         with st.spinner("Сохранение файлов на Google Диск и обновление Гугл Таблицы..."):
             progress_bar = st.progress(0)
-            
+
             for idx, uploaded_file in enumerate(uploaded_files):
                 filename = uploaded_file.name
-                
+
                 # Парсим ID работы и ФИО из названия (ID_1234__ФИО__испр.pdf)
                 match = re.match(r"^ID_(\d+)__(.+)__испр\.pdf$", filename)
                 if not match:
                     st.error(f"❌ Файл '{filename}' пропущен: неверный формат названия. Имя должно быть вида ID_1234__ФИО__испр.pdf")
                     continue
-                    
+
                 work_id = match.group(1)
                 fio = match.group(2).replace("_", " ")
-                
+
                 file_bytes = uploaded_file.read()
                 base64_str = base64.b64encode(file_bytes).decode("utf-8")
-                
+
                 payload = {
                     "row": 0,
                     "id": work_id,
@@ -130,7 +130,7 @@ if uploaded_files:
                     "cleanerName": curator,
                     "base64Data": base64_str
                 }
-            
+
                 try:
                     res = requests.post(WEB_APP_URL, json=payload, timeout=40)
                     if res.status_code == 200:
@@ -143,7 +143,7 @@ if uploaded_files:
                         st.error(f"❌ Ошибка сервера при обработке {filename}")
                 except Exception as err:
                     st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
-                    
+
                 progress_bar.progress((idx + 1) / total_files)
 
         if success_count > 0:
