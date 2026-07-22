@@ -46,9 +46,9 @@ st.subheader("1. Скачать партию бланков на чистку")
 batch_size = st.slider("📊 Выберите количество бланков в партии:", min_value=1, max_value=15, value=15)
 
 if st.button(f"📥 Запросить партию ({batch_size} бланков)", type="primary", use_container_width=True):
-with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
-    try:
-        res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant, "curator": curator, "limit": batch_size}, timeout=30)
+    with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
+        try:
+            res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant, "curator": curator, "limit": batch_size}, timeout=30)
             files = res.json() if res.status_code == 200 else []
         except Exception as e:
             st.error(f"Ошибка соединения с сервером: {e}")
@@ -131,18 +131,18 @@ if uploaded_files:
                     "base64Data": base64_str
                 }
             
-            try:
-                res = requests.post(WEB_APP_URL, json=payload, timeout=40)
-                if res.status_code == 200:
-                    res_json = res.json()
-                    if res_json.get("success"):
-                        success_count += 1
+                try:
+                    res = requests.post(WEB_APP_URL, json=payload, timeout=40)
+                    if res.status_code == 200:
+                        res_json = res.json()
+                        if res_json.get("success"):
+                            success_count += 1
+                        else:
+                            st.error(f"❌ {filename}: {res_json.get('error', 'Ошибка обработки')}")
                     else:
-                        st.error(f"❌ {filename}: {res_json.get('error', 'Ошибка обработки')}")
-                else:
-                    st.error(f"❌ Ошибка сервера при обработке {filename}")
-            except Exception as err:
-                st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
+                        st.error(f"❌ Ошибка сервера при обработке {filename}")
+                except Exception as err:
+                    st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
                     
                 progress_bar.progress((idx + 1) / total_files)
 
