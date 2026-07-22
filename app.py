@@ -46,7 +46,7 @@ st.subheader("1. Скачать партию бланков на чистку")
 if st.button("📥 Запросить партию бланков (до 15 шт.)", type="primary", use_container_width=True):
     with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
         try:
-            res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant}, timeout=30)
+            res = requests.get(WEB_APP_URL, params={"action": "list", "variant": variant, "curator": curator}, timeout=30)
             files = res.json() if res.status_code == 200 else []
         except Exception as e:
             st.error(f"Ошибка соединения с сервером: {e}")
@@ -128,15 +128,19 @@ if uploaded_files:
                     "cleanerName": curator,
                     "base64Data": base64_str
                 }
-                
-                try:
-                    res = requests.post(WEB_APP_URL, json=payload, timeout=40)
-                    if res.status_code == 200 and res.json().get("success"):
+            
+            try:
+                res = requests.post(WEB_APP_URL, json=payload, timeout=40)
+                if res.status_code == 200:
+                    res_json = res.json()
+                    if res_json.get("success"):
                         success_count += 1
                     else:
-                        st.error(f"❌ Ошибка сервера при обработке {filename}")
-                except Exception as err:
-                    st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
+                        st.error(f"❌ {filename}: {res_json.get('error', 'Ошибка обработки')}")
+                else:
+                    st.error(f"❌ Ошибка сервера при обработке {filename}")
+            except Exception as err:
+                st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
                     
                 progress_bar.progress((idx + 1) / total_files)
 
