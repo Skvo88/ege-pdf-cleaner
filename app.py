@@ -59,24 +59,31 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
     else:
         st.success(f"Найдено свободных бланков: {len(files)} шт. Формируем ZIP-архив...")
 
-        # Скачиваем файлы и формируем ZIP в оперативной памяти
+        # Скачиваем файлы параллельно для многократного ускорения
+        from concurrent.futures import ThreadPoolExecutor
+
+        def download_single_file(item):
+            file_id = item["fileId"]
+            filename = item["fileName"]
+            try:
+                res = requests.get(WEB_APP_URL, params={"action": "get_file", "fileId": file_id}, timeout=40)
+                if res.status_code == 200:
+                    return filename, base64.b64decode(res.text)
+            except Exception as err:
+                return filename, err
+            return filename, None
+
         zip_buffer = io.BytesIO()
-        progress_bar = st.progress(0)
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            results = list(executor.map(download_single_file, files))
 
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for idx, item in enumerate(files):
-                file_id = item["fileId"]
-                filename = item["fileName"]
-
-                try:
-                    file_res = requests.get(WEB_APP_URL, params={"action": "get_file", "fileId": file_id}, timeout=30)
-                    if file_res.status_code == 200:
-                        file_bytes = base64.b64decode(file_res.text)
-                        zf.writestr(filename, file_bytes)
-                except Exception as err:
-                    st.error(f"Ошибка скачивания файла {filename}: {err}")
-
-                progress_bar.progress((idx + 1) / len(files))
+            for filename, file_data in results:
+                if isinstance(file_data, Exception):
+                    st.error(f"Ошибка скачивания файла {filename}: {file_data}")
+                elif file_data:
+                    zf.writestr(filename, file_data)
 
         safe_variant = variant.replace(" ", "_")
         safe_curator = curator.replace(" ", "_")
