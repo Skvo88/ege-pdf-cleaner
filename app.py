@@ -115,14 +115,13 @@ if uploaded_files:
         with st.spinner("Сохранение файлов на Google Диск и обновление Гугл Таблицы..."):
             progress_bar = st.progress(0)
 
-            for idx, uploaded_file in enumerate(uploaded_files):
-                filename = uploaded_file.name
+            from concurrent.futures import ThreadPoolExecutor
 
-                # Парсим ID работы и ФИО из названия (ID_1234__ФИО__испр.pdf)
+            def upload_single_file(uploaded_file):
+                filename = uploaded_file.name
                 match = re.match(r"^ID_(\d+)__(.+)__испр\.pdf$", filename)
                 if not match:
-                    st.error(f"❌ Файл '{filename}' пропущен: неверный формат названия. Имя должно быть вида ID_1234__ФИО__испр.pdf")
-                    continue
+                    return filename, "Неверный формат названия. Имя должно быть вида ID_1234__ФИО__испр.pdf"
 
                 work_id = match.group(1)
                 fio = match.group(2).replace("_", " ")
@@ -139,19 +138,26 @@ if uploaded_files:
                 }
 
                 try:
-                    res = requests.post(WEB_APP_URL, json=payload, timeout=40)
+                    res = requests.post(WEB_APP_URL, json=payload, timeout=50)
                     if res.status_code == 200:
                         res_json = res.json()
                         if res_json.get("success"):
-                            success_count += 1
+                            return filename, True
                         else:
-                            st.error(f"❌ {filename}: {res_json.get('error', 'Ошибка обработки')}")
+                            return filename, res_json.get("error", "Ошибка обработки")
                     else:
-                        st.error(f"❌ Ошибка сервера при обработке {filename}")
+                        return filename, "Ошибка сервера при обработке"
                 except Exception as err:
-                    st.error(f"❌ Ошибка сети при отправке {filename}: {err}")
+                    return filename, f"Ошибка сети: {err}"
 
-                progress_bar.progress((idx + 1) / total_files)
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                results = list(executor.map(upload_single_file, uploaded_files))
+
+            for filename, result in results:
+                if result is True:
+                    success_count += 1
+                else:
+                    st.error(f"❌ {filename}: {result}")
 
         if success_count > 0:
             st.balloons()
