@@ -65,25 +65,36 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
         def download_single_file(item):
             file_id = item["fileId"]
             filename = item["fileName"]
+            work_id = item["id"]
             try:
                 res = requests.get(WEB_APP_URL, params={"action": "get_file", "fileId": file_id}, timeout=40)
                 if res.status_code == 200:
-                    return filename, base64.b64decode(res.text)
+                    return work_id, filename, base64.b64decode(res.text)
             except Exception as err:
-                return filename, err
-            return filename, None
+                return work_id, filename, err
+            return work_id, filename, None
 
         zip_buffer = io.BytesIO()
 
         with ThreadPoolExecutor(max_workers=8) as executor:
             results = list(executor.map(download_single_file, files))
 
+        downloaded_ids = []
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for filename, file_data in results:
+            for work_id, filename, file_data in results:
                 if isinstance(file_data, Exception):
                     st.error(f"Ошибка скачивания файла {filename}: {file_data}")
                 elif file_data:
                     zf.writestr(filename, file_data)
+                    downloaded_ids.append(work_id)
+
+        # Отправляем подтверждение в Гугл Таблицу, что бланки успешно упакованы в ZIP
+        if downloaded_ids:
+            try:
+                ids_str = ",".join(map(str, downloaded_ids))
+                requests.get(WEB_APP_URL, params={"action": "mark_downloaded", "ids": ids_str}, timeout=15)
+            except Exception:
+                pass
 
         safe_variant = variant.replace(" ", "_")
         safe_curator = curator.replace(" ", "_")
