@@ -80,10 +80,13 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
             results = list(executor.map(download_single_file, files))
 
         downloaded_ids = []
+        failed_ids = []
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for work_id, filename, file_data in results:
-                if isinstance(file_data, Exception):
-                    st.error(f"Ошибка скачивания файла {filename}: {file_data}")
+                if isinstance(file_data, Exception) or not file_data:
+                    if isinstance(file_data, Exception):
+                        st.error(f"Ошибка скачивания файла {filename}: {file_data}")
+                    failed_ids.append(work_id)
                 elif file_data:
                     zf.writestr(filename, file_data)
                     downloaded_ids.append(work_id)
@@ -93,6 +96,14 @@ if st.button(f"📥 Запросить партию ({batch_size} бланков
             try:
                 ids_str = ",".join(map(str, downloaded_ids))
                 requests.get(WEB_APP_URL, params={"action": "mark_downloaded", "ids": ids_str}, timeout=15)
+            except Exception:
+                pass
+
+        # Отправляем запрос на моментальное освобождение бланков, которые НЕ удалось скачать
+        if failed_ids:
+            try:
+                failed_ids_str = ",".join(map(str, failed_ids))
+                requests.get(WEB_APP_URL, params={"action": "unassign_failed", "ids": failed_ids_str}, timeout=15)
             except Exception:
                 pass
 
