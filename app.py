@@ -116,7 +116,17 @@ with st.container(border=True):
                 try:
                     res = requests.get(WEB_APP_URL, params={"action": "get_file", "fileId": file_id}, timeout=40)
                     if res.status_code == 200:
-                        return work_id, filename, base64.b64decode(res.text)
+                        text_data = res.text.strip()
+                        # Если сервер вернул сообщение об ошибке (например "ERROR: ...")
+                        if text_data.startswith("ERROR") or text_data.startswith("<!DOCTYPE") or text_data.startswith("{"):
+                            return work_id, filename, Exception(f"Ошибка чтения файла: {text_data[:80]}")
+                        
+                        file_bytes = base64.b64decode(text_data)
+                        # Проверяем заголовки PDF (настоящий PDF всегда начинается с %PDF-)
+                        if not file_bytes.startswith(b"%PDF-"):
+                            return work_id, filename, Exception("Файл поврежден или не является PDF")
+                            
+                        return work_id, filename, file_bytes
                 except Exception as err:
                     return work_id, filename, err
                 return work_id, filename, None
@@ -156,7 +166,7 @@ with st.container(border=True):
             safe_curator = curator.replace(" ", "_")
 
             st.download_button(
-                label=f"💾 Скачать ZIP-архив ({len(files)} бланков)",
+                label=f"💾 Скачать ZIP-архив ({len(downloaded_ids)} бланков)",
                 data=zip_buffer.getvalue(),
                 file_name=f"Чистка__{safe_variant}__{safe_curator}.zip",
                 mime="application/zip",
@@ -227,6 +237,7 @@ with st.container(border=True):
                     else:
                         st.error(f"❌ {filename}: {result}")
 
-        if success_count > 0:
-            st.balloons()
-            st.success(f"🎉 Успешно загружено и обновлено в таблице: {success_count} из {total_files} бланков!\n\nВ столбце 'Кто чистил' записано: **{curator}**.")
+            # Фикс ошибки NameError: проверка перенесена внутрь блока клика по кнопке
+            if success_count > 0:
+                st.balloons()
+                st.success(f"🎉 Успешно загружено и обновлено в таблице: {success_count} из {total_files} бланков!\n\nВ столбце 'Кто чистил' записано: **{curator}**.")
