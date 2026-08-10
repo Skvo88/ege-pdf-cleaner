@@ -53,9 +53,9 @@ st.subheader("1. Скачать партию бланков на чистку")
 
 batch_size = st.slider("📊 Выберите количество бланков в партии:", min_value=1, max_value=15, value=15)
 
-# Кнопка проверки доступных свободных работ
-if st.button("🔍 Проверить свободные бланки по варианту", use_container_width=True):
-    with st.spinner("Считаем свободные бланки в базе..."):
+# Кнопка проверки доступных свободных работ по всем вариантам сразу
+if st.button("📊 Проверить наличие бланков по ВСЕМ вариантам", use_container_width=True):
+    with st.spinner("Запрашиваем свежие данные по всем вариантам..."):
         try:
             res = requests.get(WEB_APP_URL, params={"action": "count_free"}, timeout=15)
             if res.status_code == 200:
@@ -65,11 +65,16 @@ if st.button("🔍 Проверить свободные бланки по ва�
 
 if "free_counts" in st.session_state:
     counts = st.session_state.get("free_counts", {})
-    qty = counts.get(variant, 0)
-    if qty > 0:
-        st.success(f"🟢 По варианту **«{variant}»** сейчас свободно: **{qty} бланков**")
-    else:
-        st.warning(f"🔴 По варианту **«{variant}»** свободных бланков сейчас нет.")
+    st.info("📋 **Доступность бланков по всем вариантам:**")
+    
+    cols = st.columns(len(VARIANTS))
+    for idx, v_name in enumerate(VARIANTS):
+        v_qty = counts.get(v_name, 0)
+        with cols[idx]:
+            if v_qty > 0:
+                st.success(f"🟢 **{v_name}**\n\nСвободно: **{v_qty} шт.**")
+            else:
+                st.error(f"🔴 **{v_name}**\n\nСвободно: **0 шт.**")
 
 if st.button(f"📥 Запросить партию ({batch_size} бланков)", type="primary", use_container_width=True):
     with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
