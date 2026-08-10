@@ -40,27 +40,28 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- СОБСТВЕННЫЕ СТИЛИ ДИЗАЙНА (CSS) ---
+# --- АДАПТИВНЫЕ СТИЛИ ДИЗАЙНА (ПОДДЕРЖКА СВЕТЛОЙ И ТЕМНОЙ ТЕМ) ---
 st.markdown("""
 <style>
-    /* Главный заголовок и подзаголовки */
+    /* Адаптивный главный заголовок */
     .main-header {
         font-size: 26px;
         font-weight: 800;
-        color: #1E293B;
+        color: var(--text-color, #1E293B);
         margin-bottom: 2px;
         text-align: center;
     }
     .sub-header {
         font-size: 14px;
-        color: #64748B;
+        color: var(--text-color, #64748B);
+        opacity: 0.85;
         text-align: center;
         margin-bottom: 25px;
     }
     
-    /* Стилизованные карточки вариантов */
+    /* Стилизованные адаптивные карточки вариантов */
     .variant-card-green {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.12) 100%);
+        background: rgba(16, 185, 129, 0.12);
         border: 1px solid #10B981;
         border-radius: 12px;
         padding: 14px 16px;
@@ -71,7 +72,7 @@ st.markdown("""
         justify-content: space-between;
     }
     .variant-card-red {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.12) 100%);
+        background: rgba(239, 68, 68, 0.12);
         border: 1px solid #EF4444;
         border-radius: 12px;
         padding: 14px 16px;
@@ -84,19 +85,19 @@ st.markdown("""
     .variant-title {
         font-weight: 700;
         font-size: 14px;
-        color: #0F172A;
+        color: var(--text-color, #0F172A);
         line-height: 1.3;
         margin-bottom: 6px;
     }
     .variant-count-green {
         font-size: 13px;
         font-weight: 700;
-        color: #059669;
+        color: #10B981;
     }
     .variant-count-red {
         font-size: 13px;
         font-weight: 700;
-        color: #DC2626;
+        color: #EF4444;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -133,7 +134,7 @@ with st.container(border=True):
     # Если данные о количестве запрошены — показываем сеткой 2 колонки
     if "free_counts" in st.session_state:
         counts = st.session_state.get("free_counts", {})
-        st.markdown("<div style='font-size: 13px; font-weight: 600; color: #475569; margin: 10px 0 8px 0;'>Сводка по свободным бланкам:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size: 13px; font-weight: 600; opacity: 0.9; margin: 10px 0 8px 0;'>Сводка по свободным бланкам:</div>", unsafe_allow_html=True)
         
         cols_per_row = 2
         for i in range(0, len(VARIANTS), cols_per_row):
@@ -295,6 +296,6 @@ with st.container(border=True):
                     else:
                         st.error(f"❌ {filename}: {result}")
 
-            if success_count > 0:
-                st.balloons()
-                st.success(f"🎉 Успешно загружено и обновлено в таблице: {success_count} из {total_files} бланков!\n\nВ столбце 'Кто чистил' записано: **{curator}**.")
+        if success_count > 0:
+            st.balloons()
+            st.success(f"🎉 Успешно загружено и обновлено в таблице: {success_count} из {total_files} бланков!\n\nВ столбце 'Кто чистил' записано: **{curator}**.")
