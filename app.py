@@ -53,6 +53,24 @@ st.subheader("1. Скачать партию бланков на чистку")
 
 batch_size = st.slider("📊 Выберите количество бланков в партии:", min_value=1, max_value=15, value=15)
 
+# Кнопка проверки доступных свободных работ
+if st.button("🔍 Проверить свободные бланки по варианту", use_container_width=True):
+    with st.spinner("Считаем свободные бланки в базе..."):
+        try:
+            res = requests.get(WEB_APP_URL, params={"action": "count_free"}, timeout=15)
+            if res.status_code == 200:
+                st.session_state["free_counts"] = res.json()
+        except Exception:
+            st.error("Не удалось связаться с базой данных.")
+
+if "free_counts" in st.session_state:
+    counts = st.session_state.get("free_counts", {})
+    qty = counts.get(variant, 0)
+    if qty > 0:
+        st.success(f"🟢 По варианту **«{variant}»** сейчас свободно: **{qty} бланков**")
+    else:
+        st.warning(f"🔴 По варианту **«{variant}»** свободных бланков сейчас нет.")
+
 if st.button(f"📥 Запросить партию ({batch_size} бланков)", type="primary", use_container_width=True):
     with st.spinner("Запрашиваем свободные бланки из Гугл Таблицы..."):
         try:
