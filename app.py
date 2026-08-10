@@ -40,71 +40,8 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- АДАПТИВНЫЕ СТИЛИ ДИЗАЙНА (ПОДДЕРЖКА СВЕТЛОЙ И ТЕМНОЙ ТЕМ) ---
-st.markdown("""
-<style>
-    /* Адаптивный главный заголовок */
-    .main-header {
-        font-size: 26px;
-        font-weight: 800;
-        color: var(--text-color, #1E293B);
-        margin-bottom: 2px;
-        text-align: center;
-    }
-    .sub-header {
-        font-size: 14px;
-        color: var(--text-color, #64748B);
-        opacity: 0.85;
-        text-align: center;
-        margin-bottom: 25px;
-    }
-    
-    /* Стилизованные адаптивные карточки вариантов */
-    .variant-card-green {
-        background: rgba(16, 185, 129, 0.12);
-        border: 1px solid #10B981;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 12px;
-        min-height: 85px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .variant-card-red {
-        background: rgba(239, 68, 68, 0.12);
-        border: 1px solid #EF4444;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 12px;
-        min-height: 85px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .variant-title {
-        font-weight: 700;
-        font-size: 14px;
-        color: var(--text-color, #0F172A);
-        line-height: 1.3;
-        margin-bottom: 6px;
-    }
-    .variant-count-green {
-        font-size: 13px;
-        font-weight: 700;
-        color: #10B981;
-    }
-    .variant-count-red {
-        font-size: 13px;
-        font-weight: 700;
-        color: #EF4444;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Заголовок
-st.markdown('<div class="main-header">🧹 Модуль чистки бланков</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Сервис автоматической выгрузки и загрузки бланков ЕГЭ Обществознание</div>', unsafe_allow_html=True)
+st.title("🧹 Модуль чистки бланков")
+st.caption("Сервис автоматической выгрузки и загрузки бланков ЕГЭ Обществознание")
 
 # 1. Панель авторизации
 with st.container(border=True):
@@ -131,10 +68,10 @@ with st.container(border=True):
             except Exception:
                 st.error("Ошибка связи с базой данных.")
 
-    # Если данные о количестве запрошены — показываем сеткой 2 колонки
+    # Если данные о количестве запрошены — показываем сеткой по 2 колонки
     if "free_counts" in st.session_state:
         counts = st.session_state.get("free_counts", {})
-        st.markdown("<div style='font-size: 13px; font-weight: 600; opacity: 0.9; margin: 10px 0 8px 0;'>Сводка по свободным бланкам:</div>", unsafe_allow_html=True)
+        st.write("📋 **Сводка по свободным бланкам:**")
         
         cols_per_row = 2
         for i in range(0, len(VARIANTS), cols_per_row):
@@ -144,20 +81,13 @@ with st.container(border=True):
                     v_name = VARIANTS[i + j]
                     v_qty = counts.get(v_name, 0)
                     with cols[j]:
-                        if v_qty > 0:
-                            st.markdown(f"""
-                            <div class="variant-card-green">
-                                <div class="variant-title">🟢 {v_name}</div>
-                                <div class="variant-count-green">Свободно: {v_qty} шт.</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"""
-                            <div class="variant-card-red">
-                                <div class="variant-title">🔴 {v_name}</div>
-                                <div class="variant-count-red">Свободно: 0 шт.</div>
-                            </div>
-                            """, unsafe_allow_html=True)
+                        with st.container(border=True):
+                            if v_qty > 0:
+                                st.markdown(f"🟢 **{v_name}**")
+                                st.success(f"Свободно: **{v_qty} шт.**")
+                            else:
+                                st.markdown(f"🔴 **{v_name}**")
+                                st.error("Свободно: **0 шт.**")
         st.write("")
 
     batch_size = st.slider("Количество бланков в партии:", min_value=1, max_value=15, value=15)
