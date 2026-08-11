@@ -4,6 +4,7 @@ import base64
 import io
 import zipfile
 import re
+import time
 
 # URL развернутого бэкенда Google Apps Script
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyagFr3GtUO3zQThO-tpst898De5MxIM3749q-in8rKK_0xHzNmtQpo6AYCMX8XULNj/exec"
@@ -148,19 +149,26 @@ with st.container(border=True):
                         zf.writestr(filename, file_data)
                         downloaded_ids.append(work_id)
 
+            # Надежная синхронизация статусов с 3 попытками повтора
             if downloaded_ids:
-                try:
-                    ids_str = ",".join(map(str, downloaded_ids))
-                    requests.get(WEB_APP_URL, params={"action": "mark_downloaded", "ids": ids_str}, timeout=15)
-                except Exception:
-                    pass
+                ids_str = ",".join(map(str, downloaded_ids))
+                for attempt in range(3):
+                    try:
+                        res = requests.get(WEB_APP_URL, params={"action": "mark_downloaded", "ids": ids_str}, timeout=15)
+                        if res.status_code == 200:
+                            break
+                    except Exception:
+                        time.sleep(1)
 
             if failed_ids:
-                try:
-                    failed_ids_str = ",".join(map(str, failed_ids))
-                    requests.get(WEB_APP_URL, params={"action": "unassign_failed", "ids": failed_ids_str}, timeout=15)
-                except Exception:
-                    pass
+                failed_ids_str = ",".join(map(str, failed_ids))
+                for attempt in range(3):
+                    try:
+                        res = requests.get(WEB_APP_URL, params={"action": "unassign_failed", "ids": failed_ids_str}, timeout=15)
+                        if res.status_code == 200:
+                            break
+                    except Exception:
+                        time.sleep(1)
 
             safe_variant = variant.replace(" ", "_")
             safe_curator = curator.replace(" ", "_")
