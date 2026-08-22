@@ -221,7 +221,8 @@ with st.container(border=True):
                 from concurrent.futures import ThreadPoolExecutor
 
                 def upload_single_file(uploaded_file):
-                    filename = uploaded_file.name
+                    import unicodedata
+                    filename = unicodedata.normalize('NFC', uploaded_file.name)
                     match = re.match(r"^ID_(\d+)__(.+)__испр\.pdf$", filename)
                     if not match:
                         return filename, "Неверный формат названия. Имя должно быть вида ID_1234__ФИО__испр.pdf"
